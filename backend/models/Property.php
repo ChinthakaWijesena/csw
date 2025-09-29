@@ -31,7 +31,7 @@ class Property {
             $where[] = 'p.is_featured = 1';
         }
 
-        // Example filters mapping (extend as needed)
+        // Location filters (accept both *_id and plain IDs used by frontend)
         if (!empty($filters['province_id'])) {
             $where[] = 'p.province_id = ?';
             $params[] = (int)$filters['province_id'];
@@ -44,9 +44,63 @@ class Property {
             $where[] = 'p.city_id = ?';
             $params[] = (int)$filters['city_id'];
         }
+        if (!empty($filters['province'])) {
+            $where[] = 'p.province_id = ?';
+            $params[] = (int)$filters['province'];
+        }
+        if (!empty($filters['district'])) {
+            $where[] = 'p.district_id = ?';
+            $params[] = (int)$filters['district'];
+        }
+        if (!empty($filters['city']) && is_numeric($filters['city'])) {
+            $where[] = 'p.city_id = ?';
+            $params[] = (int)$filters['city'];
+        }
+
+        // Free text search for location/title
+        $q = $filters['q'] ?? ($filters['search'] ?? ($filters['city'] ?? ''));
+        if (!empty($q) && !is_numeric($q)) {
+            $where[] = '(c.name LIKE ? OR d.name LIKE ? OR p.title LIKE ?)';
+            $like = '%' . $q . '%';
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        // Property type by name
         if (!empty($filters['property_type'])) {
             $where[] = 'pt.name = ?';
             $params[] = $filters['property_type'];
+        }
+
+        // Status (rent or sale)
+        if (!empty($filters['status'])) {
+            $where[] = 'p.status = ?';
+            $params[] = $filters['status'] === 'buy' ? 'sale' : $filters['status'];
+        }
+
+        // Bedrooms/Bathrooms minimum
+        if (!empty($filters['bedrooms'])) {
+            $where[] = 'p.bedrooms >= ?';
+            $params[] = (int)$filters['bedrooms'];
+        }
+        if (!empty($filters['bathrooms'])) {
+            $where[] = 'p.bathrooms >= ?';
+            $params[] = (int)$filters['bathrooms'];
+        }
+
+        // Price/rent range
+        $priceColumn = 'COALESCE(p.rent, p.price)';
+        if (!empty($filters['status'])) {
+            $priceColumn = ($filters['status'] === 'sale' || $filters['status'] === 'buy') ? 'p.price' : 'p.rent';
+        }
+        if (isset($filters['min_price']) && $filters['min_price'] !== '') {
+            $where[] = $priceColumn . ' >= ?';
+            $params[] = (float)$filters['min_price'];
+        }
+        if (isset($filters['max_price']) && $filters['max_price'] !== '') {
+            $where[] = $priceColumn . ' <= ?';
+            $params[] = (float)$filters['max_price'];
         }
 
         $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
@@ -80,6 +134,54 @@ class Property {
         ";
 
         return $this->database->fetchAll($sql, $params);
+    }
+
+    /**
+     * Count properties matching the same filters used in search().
+     */
+    public function getSearchCount($filters = []) {
+        $where = [];
+        $params = [];
+
+        // Mirror of filters in search()
+        if (!empty($filters['province_id'])) { $where[] = 'p.province_id = ?'; $params[] = (int)$filters['province_id']; }
+        if (!empty($filters['district_id'])) { $where[] = 'p.district_id = ?'; $params[] = (int)$filters['district_id']; }
+        if (!empty($filters['city_id'])) { $where[] = 'p.city_id = ?'; $params[] = (int)$filters['city_id']; }
+        if (!empty($filters['province'])) { $where[] = 'p.province_id = ?'; $params[] = (int)$filters['province']; }
+        if (!empty($filters['district'])) { $where[] = 'p.district_id = ?'; $params[] = (int)$filters['district']; }
+        if (!empty($filters['city']) && is_numeric($filters['city'])) { $where[] = 'p.city_id = ?'; $params[] = (int)$filters['city']; }
+        $q = $filters['q'] ?? ($filters['search'] ?? ($filters['city'] ?? ''));
+        if (!empty($q) && !is_numeric($q)) {
+            $where[] = '(c.name LIKE ? OR d.name LIKE ? OR p.title LIKE ?)';
+            $like = '%' . $q . '%';
+            $params[] = $like; $params[] = $like; $params[] = $like;
+        }
+        if (!empty($filters['property_type'])) { $where[] = 'pt.name = ?'; $params[] = $filters['property_type']; }
+        if (!empty($filters['status'])) { $where[] = 'p.status = ?'; $params[] = $filters['status'] === 'buy' ? 'sale' : $filters['status']; }
+        if (!empty($filters['bedrooms'])) { $where[] = 'p.bedrooms >= ?'; $params[] = (int)$filters['bedrooms']; }
+        if (!empty($filters['bathrooms'])) { $where[] = 'p.bathrooms >= ?'; $params[] = (int)$filters['bathrooms']; }
+        $priceColumn = 'COALESCE(p.rent, p.price)';
+        if (!empty($filters['status'])) { $priceColumn = ($filters['status'] === 'sale' || $filters['status'] === 'buy') ? 'p.price' : 'p.rent'; }
+        if (isset($filters['min_price']) && $filters['min_price'] !== '') { $where[] = $priceColumn . ' >= ?'; $params[] = (float)$filters['min_price']; }
+        if (isset($filters['max_price']) && $filters['max_price'] !== '') { $where[] = $priceColumn . ' <= ?'; $params[] = (float)$filters['max_price']; }
+
+        $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+        $sql = "
+            SELECT COUNT(*) AS c
+            FROM properties p
+            LEFT JOIN cities c ON c.id = p.city_id
+            LEFT JOIN districts d ON d.id = p.district_id
+            LEFT JOIN property_types pt ON pt.id = p.property_type_id
+            $whereSql
+        ";
+
+        try {
+            $row = $this->database->fetch($sql, $params);
+            return (int)($row['c'] ?? 0);
+        } catch (Exception $e) {
+            return 0;
+        }
     }
 
     /**

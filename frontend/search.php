@@ -20,7 +20,9 @@ $filters = [
     'min_price' => sanitize_input($_GET['min_price'] ?? ''),
     'max_price' => sanitize_input($_GET['max_price'] ?? ''),
     'bedrooms' => sanitize_input($_GET['bedrooms'] ?? ''),
-    'bathrooms' => sanitize_input($_GET['bathrooms'] ?? '')
+    'bathrooms' => sanitize_input($_GET['bathrooms'] ?? ''),
+    'status' => sanitize_input($_GET['status'] ?? ''),
+    'q' => sanitize_input($_GET['q'] ?? '')
 ];
 
 // Remove empty filters
