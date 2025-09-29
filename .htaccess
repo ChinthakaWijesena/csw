@@ -1,0 +1,19 @@
+# Renting Place Finder - Basic Security Configuration
+
+# Prevent access to sensitive files
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|inc|bak|sql)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Allow Booking.com tracking API
+<Files "api/booking/track.php">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+# Prevent directory browsing
+Options -Indexes
+
+# Set default charset
+AddDefaultCharset UTF-8
