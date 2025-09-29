@@ -4,9 +4,8 @@
  * Handles city-related database operations
  */
 
-require_once __DIR__ . '/../../config/config.php';
-
 class City {
+    /** @var Database */
     private $db;
     
     public function __construct() {

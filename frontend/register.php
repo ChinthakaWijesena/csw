@@ -31,19 +31,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if ($action === 'send_otp') {
         $phone = sanitize_input($_POST['phone'] ?? '');
-        $name = sanitize_input($_POST['name'] ?? '');
+        $first_name = sanitize_input($_POST['first_name'] ?? '');
+        $last_name = sanitize_input($_POST['last_name'] ?? '');
+        $name = trim(($first_name . ' ' . $last_name));
         $email = sanitize_input($_POST['email'] ?? '');
-        $user_type = sanitize_input($_POST['user_type'] ?? 'customer');
+        // Force all registrations to customer user type
+        $user_type = 'customer';
         
-        if (empty($phone) || empty($name)) {
-            $error_message = 'Sri Lankan phone number and name are required.';
+        if (empty($phone) || empty($first_name) || empty($last_name)) {
+            $error_message = 'Sri Lankan phone number, first name and last name are required.';
         } elseif (!validate_phone($phone)) {
             $error_message = 'Please enter a valid Sri Lankan phone number in 07XXXXXXXX format.';
         } else {
             // Check if user already exists
             $user_model = new User();
             if ($user_model->exists($phone)) {
-                $error_message = 'An account with this phone number already exists. Please login instead.';
+                $error_message = 'Account Exists.';
             } else {
                 try {
                     $otp_service = new OTPService();
@@ -53,9 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Store the formatted phone number that was used for OTP
                         $_SESSION['register_phone'] = $result['formatted_phone'] ?? $phone;
                         $_SESSION['register_name'] = $name;
+                        $_SESSION['register_first_name'] = $first_name;
+                        $_SESSION['register_last_name'] = $last_name;
                         $_SESSION['register_email'] = $email;
-                        $_SESSION['register_user_type'] = $user_type;
-                        $success_message = 'OTP sent successfully to your phone number.';
+                        $_SESSION['register_user_type'] = 'customer';
+                        $success_message = 'OTP Sent Successfully.';
                     } else {
                         $error_message = $result['message'] ?? 'Failed to send OTP.';
                     }
@@ -68,7 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $phone = $_SESSION['register_phone'] ?? '';
         $name = $_SESSION['register_name'] ?? '';
         $email = $_SESSION['register_email'] ?? '';
-        $user_type = $_SESSION['register_user_type'] ?? 'customer';
+        // Force all registrations to customer user type
+        $user_type = 'customer';
         $otp_code = sanitize_input($_POST['otp_code'] ?? '');
         
         if (empty($phone) || empty($name) || empty($otp_code)) {
@@ -117,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         redirect(APP_URL . '/frontend/index.php');
                     }
                 } else {
-                    $error_message = 'Invalid OTP code. Please try again.';
+                    $error_message = 'Invalid OTP';
                 }
             } catch (Exception $e) {
                 $error_message = 'Error: ' . $e->getMessage();
@@ -141,36 +147,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body class="d-flex flex-column min-vh-100 overflow-hidden">
     <!-- Include Navbar -->
     <?php include 'includes/navbar.php'; ?>
 
     <!-- Registration Section -->
-    <div class="container-fluid bg-light min-vh-100 d-flex align-items-center">
+    <div class="container-fluid bg-light min-vh-100 d-flex py-4">
         <div class="container">
             <div class="row justify-content-center">
-                <div class="col-lg-6 col-md-8 col-sm-10">
+                <div class="col-lg-6 col-md-8 col-sm-10 my-3">
                     <div class="card shadow-lg">
                         <div class="card-body p-5">
-                            <div class="text-center mb-4">
-                                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                                    <i class="fas fa-user-plus fa-2x"></i>
+                            <div class="text-center mb-3">
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center me-2" style="width: 44px; height: 44px;">
+                                        <i class="fas fa-user-plus fa-lg"></i>
+                                    </div>
+                                    <h4 class="card-title mb-0">Create Account</h4>
                                 </div>
-                                <h2 class="card-title">Create Account</h2>
-                                <p class="text-muted">Join our platform to find or list rental properties</p>
                             </div>
 
-                            <?php if ($error_message): ?>
-                                <div class="alert alert-danger d-flex align-items-center mb-4">
-                                    <i class="fas fa-exclamation-circle me-2"></i>
-                                    <?php echo htmlspecialchars($error_message); ?>
-                                </div>
-                            <?php endif; ?>
-
-                            <?php if ($success_message): ?>
-                                <div class="alert alert-success d-flex align-items-center mb-4">
-                                    <i class="fas fa-check-circle me-2"></i>
-                                    <?php echo htmlspecialchars($success_message); ?>
+                            <?php 
+                            $alert_message = '';
+                            $alert_type = '';
+                            $alert_icon = '';
+                            if ($error_message) {
+                                $alert_message = $error_message;
+                                $alert_type = 'alert-danger';
+                                $alert_icon = 'fa-exclamation-circle';
+                            } elseif ($success_message) {
+                                $alert_message = $success_message;
+                                $alert_type = 'alert-success';
+                                $alert_icon = 'fa-check-circle';
+                            }
+                            ?>
+                            <?php if ($alert_message): ?>
+                                <div class="alert <?php echo $alert_type; ?> d-flex align-items-center mb-4" role="alert">
+                                    <i class="fas <?php echo $alert_icon; ?> me-2"></i>
+                                    <?php echo htmlspecialchars($alert_message); ?>
                                 </div>
                             <?php endif; ?>
 
@@ -179,50 +193,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <form method="POST" action="">
                                     <input type="hidden" name="action" value="send_otp">
                                     
-                                    <div class="mb-3">
-                                        <label for="user_type" class="form-label">I want to:</label>
-                                        <select class="form-select" id="user_type" name="user_type" required>
-                                            <option value="customer">Find rental properties</option>
-                                            <option value="owner">List my properties for rent</option>
-                                        </select>
-                                    </div>
+                                    <!-- User type selection removed: only customers can register here -->
                                     
                                     <div class="mb-3">
-                                        <label for="name" class="form-label">Full Name</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">
-                                                <i class="fas fa-user"></i>
-                                            </span>
-                                            <input type="text" class="form-control" id="name" name="name" 
-                                                   placeholder="Enter your full name" required>
+                                        <label class="form-label">Name</label>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">
+                                                        <i class="fas fa-user"></i>
+                                                    </span>
+                                                    <input type="text" class="form-control" id="first_name" name="first_name" 
+                                                           placeholder="First name" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">
+                                                        <i class="fas fa-user"></i>
+                                                    </span>
+                                                    <input type="text" class="form-control" id="last_name" name="last_name" 
+                                                           placeholder="Last name" required>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                                 
-                                    <div class="mb-3">
-                                        <label for="email" class="form-label">Email Address (Optional)</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">
-                                                <i class="fas fa-envelope"></i>
-                                            </span>
-                                            <input type="email" class="form-control" id="email" name="email" 
-                                                   placeholder="Enter your email address">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="email" class="form-label">Email Address (Optional)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-envelope"></i>
+                                                </span>
+                                                <input type="email" class="form-control" id="email" name="email" 
+                                                       placeholder="Enter your email address">
+                                            </div>
                                         </div>
-                                        <div class="form-text">
-                                            Email is optional but recommended for notifications
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="phone" class="form-label">Sri Lankan Phone Number</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">
-                                                <i class="fas fa-phone"></i>
-                                            </span>
-                                            <input type="tel" class="form-control" id="phone" name="phone" 
-                                                   placeholder="0712345678" required>
-                                        </div>
-                                        <div class="form-text">
-                                            Enter your Sri Lankan phone number in 07XXXXXXXX format
+                                        <div class="col-md-6">
+                                            <label for="phone" class="form-label">Mobile Number</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-phone"></i>
+                                                </span>
+                                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                                       placeholder="Enter OTP Code:- 0712345678" required>
+                                            </div>
                                         </div>
                                     </div>
                                                 
@@ -238,80 +254,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     
                                     <div class="d-grid gap-2">
                                         <button type="submit" class="btn btn-primary btn-lg">
-                                            <i class="fas fa-paper-plane me-2"></i> Send OTP & Register
+                                            <i class="fas fa-paper-plane me-2"></i> Send OTP
                                         </button>
                                     </div>
                                 </form>
                             <?php else: ?>
+
                                 <!-- OTP Verification Form -->
                                 <form method="POST" action="">
                                     <input type="hidden" name="action" value="verify_otp">
-                                    
-                                    <div class="mb-3">
-                                        <div class="alert alert-info d-flex align-items-center">
-                                            <i class="fas fa-info-circle me-2"></i>
-                                            OTP sent to: <strong><?php echo htmlspecialchars($_SESSION['register_phone']); ?></strong>
-                                        </div>
+                                    <div class="mb-2">
+                                        <small class="text-muted">OTP expires in: <span id="otp-countdown" class="fw-bold text-primary">10:00</span></small>
                                     </div>
-                                    
                                     <div class="mb-3">
-                                        <label for="otp_code" class="form-label">Enter OTP Code</label>
                                         <div class="input-group">
                                             <span class="input-group-text">
                                                 <i class="fas fa-key"></i>
                                             </span>
                                             <input type="text" class="form-control text-center" id="otp_code" name="otp_code" 
-                                                   placeholder="123456" maxlength="6" required>
+                                                   placeholder="Enter OTP Code:- 123456" maxlength="6" required>
                                         </div>
-                                        <div class="form-text">
-                                            Enter the 6-digit code sent to your phone
-                                        </div>
+                                   
                                     </div>
                                     
                                     <div class="d-grid gap-2">
-                                        <button type="submit" class="btn btn-primary btn-lg">
-                                            <i class="fas fa-check me-2"></i> Verify & Complete Registration
-                                        </button>
+                                        
                                         
                                         <button type="button" class="btn btn-outline-secondary" onclick="resendOTP()">
                                             <i class="fas fa-redo me-2"></i> Resend OTP
                                         </button>
                                         
-                                        <a href="register.php?action=change_details" class="btn btn-link">
+                                        <button type="button" class="btn btn-success" onclick="window.location.href='register.php?action=change_details'">
                                             <i class="fas fa-arrow-left me-2"></i> Change Details
-                                        </a>
+                                        </button>
                                     </div>
                                 </form>
                             <?php endif; ?>
 
                             <hr class="my-4">
-                            
-                            <div class="text-center">
-                                <p class="mb-0">Already have an account?</p>
-                                <a href="login.php" class="btn btn-link">Login here</a>
-                            </div>
+
                         </div>
                     </div>
                     
-                    <?php if (DEBUG_MODE && DEV_FIXED_OTP_ENABLED): ?>
-                        <div class="alert alert-warning mt-3">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>⚠️ DEVELOPMENT MODE:</strong> Use fixed OTP code <code><?php echo DEV_FIXED_OTP; ?></code> for all phone numbers.
-                            <br><small class="text-danger"><strong>DO NOT DEPLOY THIS TO PRODUCTION!</strong></small>
-                        </div>
-                    <?php elseif (DEBUG_MODE): ?>
-                        <div class="alert alert-info mt-3">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Development Mode:</strong> Debug logging enabled.
-                        </div>
-                    <?php endif; ?>
+                   
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Include Footer -->
-    <?php include 'includes/footer.php'; ?>
 
     <script>
         // Auto-format Sri Lankan phone number - only 07XXXXXXXX format
@@ -382,40 +372,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Resend OTP function
         function resendOTP() {
             if (confirm('Resend OTP to <?php echo $_SESSION['register_phone'] ?? ''; ?>?')) {
-                // Create a form to resend OTP
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.innerHTML = `
                     <input type="hidden" name="action" value="send_otp">
                     <input type="hidden" name="phone" value="<?php echo $_SESSION['register_phone'] ?? ''; ?>">
-                    <input type="hidden" name="name" value="<?php echo $_SESSION['register_name'] ?? ''; ?>">
+                    <input type="hidden" name="first_name" value="<?php echo $_SESSION['register_first_name'] ?? ''; ?>">
+                    <input type="hidden" name="last_name" value="<?php echo $_SESSION['register_last_name'] ?? ''; ?>">
                     <input type="hidden" name="email" value="<?php echo $_SESSION['register_email'] ?? ''; ?>">
-                    <input type="hidden" name="user_type" value="<?php echo $_SESSION['register_user_type'] ?? 'customer'; ?>">
                 `;
                 document.body.appendChild(form);
                 form.submit();
             }
         }
         
-        // Countdown timer for OTP expiry
+        // Countdown timer for OTP expiry (single label above input)
         let countdown = 600; // 10 minutes
-        const timerElement = document.createElement('div');
-        timerElement.className = 'text-center mt-3';
-        timerElement.innerHTML = '<small class="text-muted">OTP expires in: <span id="countdown">10:00</span></small>';
-        
-        if (document.querySelector('form[method="POST"]')) {
-            document.querySelector('form[method="POST"]').appendChild(timerElement);
-            
+        const otpCountdownEl = document.getElementById('otp-countdown');
+        if (otpCountdownEl) {
             const countdownInterval = setInterval(() => {
                 const minutes = Math.floor(countdown / 60);
                 const seconds = countdown % 60;
-                document.getElementById('countdown').textContent = 
-                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                
+                otpCountdownEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
                 if (countdown <= 0) {
                     clearInterval(countdownInterval);
-                    document.getElementById('countdown').textContent = 'Expired';
-                    document.getElementById('countdown').className = 'text-danger';
+                    otpCountdownEl.textContent = 'Expired';
+                    otpCountdownEl.className = 'fw-bold text-danger';
                 }
                 countdown--;
             }, 1000);

@@ -18,7 +18,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
     <div class="container">
         <!-- Brand/Logo -->
-        <a class="navbar-brand d-flex align-items-center" href="index.php">
+        <a class="navbar-brand d-flex align-items-center" href="<?php echo APP_URL; ?>/frontend/index.php">
             <i class="fas fa-home me-2"></i>
             <?php echo APP_NAME; ?>
         </a>
@@ -31,23 +31,18 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <!-- Navigation Menu -->
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
-                <!-- Home -->
-                <li class="nav-item">
-                    <a class="nav-link <?php echo ($current_page === 'index.php') ? 'active' : ''; ?>" href="index.php">
-                        <i class="fas fa-home me-1"></i>Home
-                    </a>
-                </li>
+                
 
                 <!-- Search Properties -->
                 <li class="nav-item">
-                    <a class="nav-link <?php echo ($current_page === 'search.php') ? 'active' : ''; ?>" href="search.php">
+                    <a class="nav-link <?php echo ($current_page === 'search.php') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/frontend/search.php">
                         <i class="fas fa-search me-1"></i>Search Properties
                     </a>
                 </li>
 
                 <!-- Wishlist -->
                 <li class="nav-item">
-                    <a class="nav-link <?php echo ($current_page === 'wishlist.php') ? 'active' : ''; ?>" href="wishlist.php" id="wishlist-nav-link">
+                    <a class="nav-link <?php echo ($current_page === 'wishlist.php') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/frontend/wishlist.php" id="wishlist-nav-link">
                       
                         <i class="fas fa-heart me-1"></i>Wishlist
                     </a>
@@ -55,7 +50,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
                 <!-- About -->
                 <li class="nav-item">
-                    <a class="nav-link <?php echo ($current_page === 'about.php') ? 'active' : ''; ?>" href="about.php">
+                    <a class="nav-link <?php echo ($current_page === 'about.php') ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/frontend/about.php">
                         <i class="fas fa-info-circle me-1"></i>About
                     </a>
                 </li>
@@ -63,7 +58,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <!-- Owner Dashboard -->
                 <?php if (is_logged_in() && $_SESSION['user_type'] === 'owner'): ?>
                 <li class="nav-item">
-                    <a class="nav-link <?php echo ($current_page === 'owner/dashboard/index.php') ? 'active' : ''; ?>" href="owner/dashboard/index.php">
+                    <a class="nav-link <?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', '/frontend/owner/dashboard/index.php') !== false) ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/frontend/owner/dashboard/index.php">
                         <i class="fas fa-tachometer-alt me-1"></i>Owner Dashboard
                     </a>
                 </li>
@@ -72,7 +67,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <!-- Admin Dashboard -->
                 <?php if (is_logged_in() && $_SESSION['user_type'] === 'admin'): ?>
                 <li class="nav-item">
-                    <a class="nav-link <?php echo ($current_page === 'admin/dashboard/index.php') ? 'active' : ''; ?>" href="admin/dashboard/index.php">
+                    <a class="nav-link <?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', '/admin/dashboard/index.php') !== false) ? 'active' : ''; ?>" href="<?php echo APP_URL; ?>/admin/dashboard/index.php">
                         <i class="fas fa-tachometer-alt me-1"></i>Admin Dashboard
                     </a>
                 </li>
@@ -101,12 +96,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <!-- Dashboard -->
-                            <li><a class="dropdown-item" href="dashboard.php">
+                            <li><a class="dropdown-item" href="<?php echo APP_URL; ?>/frontend/dashboard.php">
                                     <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                                 </a></li>
 
                             <!-- Profile -->
-                            <li><a class="dropdown-item" href="profile.php">
+                            <li><a class="dropdown-item" href="<?php echo APP_URL; ?>/frontend/profile.php">
                                     <i class="fas fa-user-edit me-2"></i>Profile
                                 </a></li>
 
@@ -118,25 +113,25 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 <li>
                                     <h6 class="dropdown-header">Admin Panel</h6>
                                 </li>
-                                <li><a class="dropdown-item" href="admin/dashboard/index.php">
+                                <li><a class="dropdown-item" href="<?php echo APP_URL; ?>/admin/dashboard/index.php">
                                         <i class="fas fa-cogs me-2"></i>Admin Dashboard
                                     </a></li>
-                                <li><a class="dropdown-item" href="admin/properties/index.php">
+                                <li><a class="dropdown-item" href="<?php echo APP_URL; ?>/admin/properties/index.php">
                                         <i class="fas fa-building me-2"></i>Manage Properties
                                     </a></li>
-                                <li><a class="dropdown-item" href="admin/users/index.php">
+                                <li><a class="dropdown-item" href="<?php echo APP_URL; ?>/admin/users/index.php">
                                         <i class="fas fa-users me-2"></i>Manage Users
                                     </a></li>
-                                <li><a class="dropdown-item" href="admin/bookings/index.php">
+                                <li><a class="dropdown-item" href="<?php echo APP_URL; ?>/admin/bookings/index.php">
                                         <i class="fas fa-calendar me-2"></i>Manage Bookings
                                     </a></li>
-                                <li><a class="dropdown-item" href="admin/payments/index.php">
+                                <li><a class="dropdown-item" href="<?php echo APP_URL; ?>/admin/payments/index.php">
                                         <i class="fas fa-credit-card me-2"></i>Manage Payments
                                     </a></li>
-                                <li><a class="dropdown-item" href="admin/reports/index.php">
+                                <li><a class="dropdown-item" href="<?php echo APP_URL; ?>/admin/reports/index.php">
                                         <i class="fas fa-chart-bar me-2"></i>Reports
                                     </a></li>
-                                <li><a class="dropdown-item" href="admin/settings/index.php">
+                                <li><a class="dropdown-item" href="<?php echo APP_URL; ?>/admin/settings/index.php">
                                         <i class="fas fa-cog me-2"></i>Settings
                                     </a></li>
                             <?php endif; ?>
@@ -145,29 +140,31 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
-                            <li><a class="dropdown-item text-danger" href="logout.php">
+                            <li><a class="dropdown-item text-danger" href="<?php echo APP_URL; ?>/frontend/logout.php">
                                     <i class="fas fa-sign-out-alt me-2"></i>Logout
                                 </a></li>
                         </ul>
                     </div>
                 <?php else: ?>
                     <!-- Login/Register Buttons -->
-                    <div class="d-flex gap-2">
-                        <a href="login.php" class="btn btn-outline-light">
+                     <!-- im a proprty owner -->
+                     <div class="d-flex gap-2">
+                     <a href="<?php echo APP_URL; ?>/frontend/owner/login.php" class="btn btn-outline-light">
+                            <i class="fas fa-sign-in-alt me-1"></i>Owner Login
+                        </a>
+                  
+                        <!-- customer login -->
+                        <a href="<?php echo APP_URL; ?>/frontend/login.php" class="btn btn-outline-light">
                             <i class="fas fa-sign-in-alt me-1"></i>Login
                         </a>
-                        <a href="register.php" class="btn btn-light">
+                        <!-- customer register -->
+                        <a href="<?php echo APP_URL; ?>/frontend/register.php" class="btn btn-light">
                             <i class="fas fa-user-plus me-1"></i>Register
                         </a>
                     </div>
                 <?php endif; ?>
 
-                <?php if ($current_page === 'login.php'): ?>
-                <!-- Admin Login -->
-                <a href="adminlogin.php" class="btn btn-outline-light ms-2">
-                    <i class="fas fa-shield-alt me-1"></i>Admin Login
-                </a>
-                <?php endif; ?>
+               
             </div>
         </div>
     </div>

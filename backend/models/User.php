@@ -280,20 +280,33 @@ class User {
             $data['properties'] = $result['count'];
             
             // Get total earnings
-            $sql = "SELECT SUM(owner_payout_amount) as total FROM rent_payments WHERE owner_id = ? AND payment_status = 'completed'";
-            $result = $this->db->fetch($sql, [$user_id]);
-            $data['total_earnings'] = $result['total'] ?? 0;
+            try {
+                $sql = "SELECT SUM(owner_payout_amount) as total FROM rent_payments WHERE owner_id = ? AND payment_status = 'completed'";
+                $result = $this->db->fetch($sql, [$user_id]);
+                $data['total_earnings'] = (float)($result['total'] ?? 0);
+            } catch (Exception $e) {
+                // Fallback if legacy table doesn't exist
+                $data['total_earnings'] = 0;
+            }
             
         } elseif ($user['user_type'] === 'customer') {
             // Get booking count
-            $sql = "SELECT COUNT(*) as count FROM rental_bookings WHERE customer_id = ?";
-            $result = $this->db->fetch($sql, [$user_id]);
-            $data['bookings'] = $result['count'];
+            try {
+                $sql = "SELECT COUNT(*) as count FROM rental_bookings WHERE customer_id = ?";
+                $result = $this->db->fetch($sql, [$user_id]);
+                $data['bookings'] = $result['count'];
+            } catch (Exception $e) {
+                $data['bookings'] = 0;
+            }
             
             // Get total payments
-            $sql = "SELECT SUM(amount) as total FROM rent_payments WHERE customer_id = ? AND payment_status = 'completed'";
-            $result = $this->db->fetch($sql, [$user_id]);
-            $data['payments'] = $result['total'] ?? 0;
+            try {
+                $sql = "SELECT SUM(amount) as total FROM rent_payments WHERE customer_id = ? AND payment_status = 'completed'";
+                $result = $this->db->fetch($sql, [$user_id]);
+                $data['payments'] = (float)($result['total'] ?? 0);
+            } catch (Exception $e) {
+                $data['payments'] = 0;
+            }
         }
         
         return $data;

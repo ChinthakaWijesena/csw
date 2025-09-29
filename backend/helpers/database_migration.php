@@ -58,9 +58,11 @@ function run_database_migration() {
         // Check if all required tables exist
         $required_tables = [
             'users', 'otp_verifications', 'user_sessions', 'properties', 
-            'property_images', 'property_types', 'provinces', 'districts', 
-            'cities', 'rental_bookings', 'rent_payments', 'subscriptions',
-            'visit_requests', 'admin_logs', 'settings'
+            'property_images', 'property_amenities', 'property_views', 'user_favorites',
+            'property_inquiries', 'property_types', 'provinces', 'districts', 
+            'cities', 'rental_bookings', 'property_sales', 'rent_payments', 
+            'sale_payments', 'subscriptions', 'visit_requests', 'admin_logs',
+            'system_settings', 'notifications', 'property_availability'
         ];
         
         $missing_tables = [];
@@ -80,7 +82,7 @@ function run_database_migration() {
         
         // Check for missing columns in existing tables
         $column_checks = [
-            'properties' => ['booking_com_link', 'is_verified', 'verification_notes'],
+            'properties' => ['price', 'offer_type', 'furnishing', 'property_status', 'featured_property', 'availability_status'],
             'rent_payments' => ['subscription_id', 'commission_amount', 'owner_payout_amount'],
             'users' => ['user_type', 'is_verified', 'is_active']
         ];
@@ -119,18 +121,23 @@ function run_database_migration() {
         if ($property_types_count['count'] == 0) {
             // Insert default property types
             $default_types = [
-                ['type_name' => 'apartment', 'display_name' => 'Apartment', 'sort_order' => 1],
-                ['type_name' => 'house', 'display_name' => 'House', 'sort_order' => 2],
-                ['type_name' => 'condo', 'display_name' => 'Condo', 'sort_order' => 3],
-                ['type_name' => 'studio', 'display_name' => 'Studio', 'sort_order' => 4],
-                ['type_name' => 'room', 'display_name' => 'Room', 'sort_order' => 5]
+                ['type_key' => 'apartment', 'type_name' => 'Apartment', 'sort_order' => 1],
+                ['type_key' => 'house', 'type_name' => 'House', 'sort_order' => 2],
+                ['type_key' => 'condo', 'type_name' => 'Condo', 'sort_order' => 3],
+                ['type_key' => 'studio', 'type_name' => 'Studio', 'sort_order' => 4],
+                ['type_key' => 'room', 'type_name' => 'Room', 'sort_order' => 5],
+                ['type_key' => 'villa', 'type_name' => 'Villa', 'sort_order' => 6],
+                ['type_key' => 'townhouse', 'type_name' => 'Townhouse', 'sort_order' => 7],
+                ['type_key' => 'penthouse', 'type_name' => 'Penthouse', 'sort_order' => 8],
+                ['type_key' => 'commercial', 'type_name' => 'Commercial', 'sort_order' => 9],
+                ['type_key' => 'land', 'type_name' => 'Land', 'sort_order' => 10]
             ];
             
             foreach ($default_types as $type) {
                 $database->query(
-                    "INSERT INTO property_types (type_name, display_name, sort_order, is_active) 
+                    "INSERT INTO property_types (type_key, type_name, sort_order, is_active) 
                      VALUES (?, ?, ?, 1)",
-                    [$type['type_name'], $type['display_name'], $type['sort_order']]
+                    [$type['type_key'], $type['type_name'], $type['sort_order']]
                 );
             }
             

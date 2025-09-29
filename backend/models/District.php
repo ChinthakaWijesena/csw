@@ -4,9 +4,8 @@
  * Handles district-related database operations
  */
 
-require_once __DIR__ . '/../../config/config.php';
-
 class District {
+    /** @var Database */
     private $db;
     
     public function __construct() {

@@ -11,44 +11,55 @@ require_admin();
 $user_model = new User();
 $property_model = new Property();
 
+
 // Get dashboard statistics
 $user_stats = $user_model->getStats();
 $property_stats = $property_model->getStats();
 
 // Get recent activities
 $recent_users = $user_model->getAll(1, 5);
-$recent_properties = $property_model->getAll(1, 5, 'pending');
+$recent_properties = $property_model->search([], 1, 5);
 
 // Get recent payments
+// Recent payments: adapt to available schema using property_sales
 $recent_payments = $database->fetchAll(
-    "SELECT rp.*, p.title as property_title, u1.name as customer_name, u2.name as owner_name 
-     FROM rent_payments rp 
-     JOIN properties p ON rp.property_id = p.id 
-     JOIN users u1 ON rp.customer_id = u1.id 
-     JOIN users u2 ON rp.owner_id = u2.id 
-     ORDER BY rp.created_at DESC 
-     LIMIT 10"
+    "SELECT 
+        ps.id,
+        p.title AS property_title,
+        u_buyer.name AS customer_name,
+        u_owner.name AS owner_name,
+        ps.sale_price AS amount,
+        (ps.sale_price * ? / 100.0) AS commission_amount,
+        'completed' AS payment_status,
+        ps.sale_date AS created_at
+     FROM property_sales ps
+     JOIN properties p ON ps.property_id = p.id
+     JOIN users u_buyer ON ps.buyer_id = u_buyer.id
+     JOIN users u_owner ON p.owner_id = u_owner.id
+     ORDER BY ps.sale_date DESC
+     LIMIT 10",
+    [defined('COMMISSION_PERCENTAGE') ? COMMISSION_PERCENTAGE : 5.0]
 );
 
 // Get monthly revenue data for chart
 $monthly_revenue = $database->fetchAll(
     "SELECT 
-        DATE_FORMAT(created_at, '%Y-%m') as month,
-        SUM(amount) as total_revenue,
-        SUM(commission_amount) as total_commission
-     FROM rent_payments 
-     WHERE payment_status = 'completed' 
-     AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-     GROUP BY DATE_FORMAT(created_at, '%Y-%m')
-     ORDER BY month ASC"
+        DATE_FORMAT(ps.sale_date, '%Y-%m') AS month,
+        SUM(ps.sale_price) AS total_revenue,
+        SUM(ps.sale_price * ? / 100.0) AS total_commission
+     FROM property_sales ps
+     WHERE ps.sale_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+     GROUP BY DATE_FORMAT(ps.sale_date, '%Y-%m')
+     ORDER BY month ASC",
+    [defined('COMMISSION_PERCENTAGE') ? COMMISSION_PERCENTAGE : 5.0]
 );
 
 // Get property type distribution
 $property_types = $database->fetchAll(
-    "SELECT property_type, COUNT(*) as count 
-     FROM properties 
-     WHERE is_verified = 1 
-     GROUP BY property_type"
+    "SELECT pt.name AS property_type, COUNT(*) AS count
+     FROM properties p
+     JOIN property_types pt ON pt.id = p.property_type_id
+     GROUP BY pt.name"
 );
 ?>
 
@@ -70,61 +81,7 @@ $property_types = $database->fetchAll(
     <div class="container-fluid">
         <div class="row">
             <!-- Admin Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0 bg-dark">
-                <div class="p-3">
-                    <h4 class="text-white mb-4">
-                        <i class="fas fa-cog me-2"></i>Admin Panel
-                    </h4>
-                    
-                    <ul class="nav nav-pills flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link active text-white" href="index.php">
-                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" href="users.php">
-                                <i class="fas fa-users me-2"></i>Users
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" href="properties.php">
-                                <i class="fas fa-home me-2"></i>Properties
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" href="bookings.php">
-                                <i class="fas fa-calendar me-2"></i>Bookings
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" href="payments.php">
-                                <i class="fas fa-credit-card me-2"></i>Payments
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" href="reports.php">
-                                <i class="fas fa-chart-bar me-2"></i>Reports
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" href="settings.php">
-                                <i class="fas fa-cog me-2"></i>Settings
-                            </a>
-                        </li>
-                        <li class="nav-item mt-3">
-                            <a class="nav-link text-white-50" href="../../frontend/index.php">
-                                <i class="fas fa-external-link-alt me-2"></i>View Site
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" href="../../frontend/logout.php">
-                                <i class="fas fa-sign-out-alt me-2"></i>Logout
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
+            <?php $active_menu = 'dashboard'; include __DIR__ . '/_sidebar.php'; ?>
             
             <!-- Main Content -->
             <div class="col-md-9 col-lg-10">

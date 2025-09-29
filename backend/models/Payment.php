@@ -148,7 +148,12 @@ class Payment {
         $params[] = $limit;
         $params[] = $offset;
         
-        return $this->db->fetchAll($sql, $params);
+        try {
+            return $this->db->fetchAll($sql, $params);
+        } catch (Exception $e) {
+            // Fallback if legacy table doesn't exist in current schema
+            return [];
+        }
     }
     
     /**
@@ -196,8 +201,13 @@ class Payment {
                 JOIN properties pr ON p.property_id = pr.id
                 WHERE {$where_clause}";
         
-        $result = $this->db->fetch($sql, $params);
-        return $result['count'];
+        try {
+            $result = $this->db->fetch($sql, $params);
+            return (int)($result['count'] ?? 0);
+        } catch (Exception $e) {
+            // Fallback if legacy table doesn't exist in current schema
+            return 0;
+        }
     }
     
     /**
@@ -554,7 +564,11 @@ class Payment {
                 GROUP BY DATE_FORMAT(created_at, '%Y-%m') 
                 ORDER BY month";
         
-        $results = $this->db->fetchAll($sql, [$owner_id, $months]);
+        try {
+            $results = $this->db->fetchAll($sql, [$owner_id, $months]);
+        } catch (Exception $e) {
+            $results = [];
+        }
         $earnings = [];
         
         // Fill in missing months with 0 earnings
@@ -575,62 +589,77 @@ class Payment {
      * Get payment statistics for owner
      */
     public function getOwnerStats($owner_id) {
-        $stats = [];
-        
-        // Total payments
-        $sql = "SELECT COUNT(*) as count FROM rent_payments WHERE owner_id = ?";
-        $result = $this->db->fetch($sql, [$owner_id]);
-        $stats['total_payments'] = $result['count'];
-        
-        // Completed payments
-        $sql = "SELECT COUNT(*) as count FROM rent_payments WHERE owner_id = ? AND payment_status = 'completed'";
-        $result = $this->db->fetch($sql, [$owner_id]);
-        $stats['completed_payments'] = $result['count'];
-        
-        // Pending payments
-        $sql = "SELECT COUNT(*) as count FROM rent_payments WHERE owner_id = ? AND payment_status = 'pending'";
-        $result = $this->db->fetch($sql, [$owner_id]);
-        $stats['pending_payments'] = $result['count'];
-        
-        // Failed payments
-        $sql = "SELECT COUNT(*) as count FROM rent_payments WHERE owner_id = ? AND payment_status = 'failed'";
-        $result = $this->db->fetch($sql, [$owner_id]);
-        $stats['failed_payments'] = $result['count'];
-        
-        // Refunded payments
-        $sql = "SELECT COUNT(*) as count FROM rent_payments WHERE owner_id = ? AND payment_status = 'refunded'";
-        $result = $this->db->fetch($sql, [$owner_id]);
-        $stats['refunded_payments'] = $result['count'];
-        
-        // Total earnings
-        $sql = "SELECT SUM(owner_payout_amount) as total_earnings FROM rent_payments WHERE owner_id = ? AND payment_status = 'completed'";
-        $result = $this->db->fetch($sql, [$owner_id]);
-        $stats['total_earnings'] = $result['total_earnings'] ?? 0;
-        
-        // Total commission paid
-        $sql = "SELECT SUM(commission_amount) as total_commission FROM rent_payments WHERE owner_id = ? AND payment_status = 'completed'";
-        $result = $this->db->fetch($sql, [$owner_id]);
-        $stats['total_commission'] = $result['total_commission'] ?? 0;
-        
-        // Average payment amount
-        $sql = "SELECT AVG(owner_payout_amount) as avg_payout FROM rent_payments WHERE owner_id = ? AND payment_status = 'completed'";
-        $result = $this->db->fetch($sql, [$owner_id]);
-        $stats['avg_payout'] = $result['avg_payout'] ?? 0;
-        
-        // This month's earnings
-        $sql = "SELECT SUM(owner_payout_amount) as monthly_earnings 
-                FROM rent_payments 
-                WHERE owner_id = ? AND payment_status = 'completed' 
-                AND MONTH(created_at) = MONTH(CURRENT_DATE()) 
-                AND YEAR(created_at) = YEAR(CURRENT_DATE())";
-        $result = $this->db->fetch($sql, [$owner_id]);
-        $stats['monthly_earnings'] = $result['monthly_earnings'] ?? 0;
-        
-        // Recent payments (last 30 days)
-        $sql = "SELECT COUNT(*) as count FROM rent_payments WHERE owner_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-        $result = $this->db->fetch($sql, [$owner_id]);
-        $stats['recent_payments'] = $result['count'];
-        
+        $stats = [
+            'total_payments' => 0,
+            'completed_payments' => 0,
+            'pending_payments' => 0,
+            'failed_payments' => 0,
+            'refunded_payments' => 0,
+            'total_earnings' => 0,
+            'total_commission' => 0,
+            'avg_payout' => 0,
+            'monthly_earnings' => 0,
+            'recent_payments' => 0,
+        ];
+
+        try {
+            // Total payments
+            $sql = "SELECT COUNT(*) as count FROM rent_payments WHERE owner_id = ?";
+            $result = $this->db->fetch($sql, [$owner_id]);
+            $stats['total_payments'] = (int)($result['count'] ?? 0);
+
+            // Completed payments
+            $sql = "SELECT COUNT(*) as count FROM rent_payments WHERE owner_id = ? AND payment_status = 'completed'";
+            $result = $this->db->fetch($sql, [$owner_id]);
+            $stats['completed_payments'] = (int)($result['count'] ?? 0);
+
+            // Pending payments
+            $sql = "SELECT COUNT(*) as count FROM rent_payments WHERE owner_id = ? AND payment_status = 'pending'";
+            $result = $this->db->fetch($sql, [$owner_id]);
+            $stats['pending_payments'] = (int)($result['count'] ?? 0);
+
+            // Failed payments
+            $sql = "SELECT COUNT(*) as count FROM rent_payments WHERE owner_id = ? AND payment_status = 'failed'";
+            $result = $this->db->fetch($sql, [$owner_id]);
+            $stats['failed_payments'] = (int)($result['count'] ?? 0);
+
+            // Refunded payments
+            $sql = "SELECT COUNT(*) as count FROM rent_payments WHERE owner_id = ? AND payment_status = 'refunded'";
+            $result = $this->db->fetch($sql, [$owner_id]);
+            $stats['refunded_payments'] = (int)($result['count'] ?? 0);
+
+            // Total earnings
+            $sql = "SELECT SUM(owner_payout_amount) as total_earnings FROM rent_payments WHERE owner_id = ? AND payment_status = 'completed'";
+            $result = $this->db->fetch($sql, [$owner_id]);
+            $stats['total_earnings'] = (float)($result['total_earnings'] ?? 0);
+
+            // Total commission paid
+            $sql = "SELECT SUM(commission_amount) as total_commission FROM rent_payments WHERE owner_id = ? AND payment_status = 'completed'";
+            $result = $this->db->fetch($sql, [$owner_id]);
+            $stats['total_commission'] = (float)($result['total_commission'] ?? 0);
+
+            // Average payment amount
+            $sql = "SELECT AVG(owner_payout_amount) as avg_payout FROM rent_payments WHERE owner_id = ? AND payment_status = 'completed'";
+            $result = $this->db->fetch($sql, [$owner_id]);
+            $stats['avg_payout'] = (float)($result['avg_payout'] ?? 0);
+
+            // This month's earnings
+            $sql = "SELECT SUM(owner_payout_amount) as monthly_earnings 
+                    FROM rent_payments 
+                    WHERE owner_id = ? AND payment_status = 'completed' 
+                    AND MONTH(created_at) = MONTH(CURRENT_DATE()) 
+                    AND YEAR(created_at) = YEAR(CURRENT_DATE())";
+            $result = $this->db->fetch($sql, [$owner_id]);
+            $stats['monthly_earnings'] = (float)($result['monthly_earnings'] ?? 0);
+
+            // Recent payments (last 30 days)
+            $sql = "SELECT COUNT(*) as count FROM rent_payments WHERE owner_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+            $result = $this->db->fetch($sql, [$owner_id]);
+            $stats['recent_payments'] = (int)($result['count'] ?? 0);
+        } catch (Exception $e) {
+            // leave defaults
+        }
+
         return $stats;
     }
     
@@ -638,66 +667,76 @@ class Payment {
      * Get owner earnings analytics
      */
     public function getOwnerEarningsAnalytics($owner_id, $date_from, $date_to) {
-        $analytics = [];
-        
-        // Total earnings in date range
-        $sql = "SELECT SUM(owner_payout_amount) as total_earnings 
-                FROM rent_payments 
-                WHERE owner_id = ? AND payment_status = 'completed' 
-                AND DATE(created_at) BETWEEN ? AND ?";
-        $result = $this->db->fetch($sql, [$owner_id, $date_from, $date_to]);
-        $analytics['total_earnings'] = $result['total_earnings'] ?? 0;
-        
-        // Total commission paid
-        $sql = "SELECT SUM(commission_amount) as total_commission 
-                FROM rent_payments 
-                WHERE owner_id = ? AND payment_status = 'completed' 
-                AND DATE(created_at) BETWEEN ? AND ?";
-        $result = $this->db->fetch($sql, [$owner_id, $date_from, $date_to]);
-        $analytics['total_commission'] = $result['total_commission'] ?? 0;
-        
-        // Payment count
-        $sql = "SELECT COUNT(*) as payment_count 
-                FROM rent_payments 
-                WHERE owner_id = ? AND payment_status = 'completed' 
-                AND DATE(created_at) BETWEEN ? AND ?";
-        $result = $this->db->fetch($sql, [$owner_id, $date_from, $date_to]);
-        $analytics['payment_count'] = $result['payment_count'];
-        
-        // Average payment amount
-        $sql = "SELECT AVG(owner_payout_amount) as avg_payment 
-                FROM rent_payments 
-                WHERE owner_id = ? AND payment_status = 'completed' 
-                AND DATE(created_at) BETWEEN ? AND ?";
-        $result = $this->db->fetch($sql, [$owner_id, $date_from, $date_to]);
-        $analytics['avg_payment'] = $result['avg_payment'] ?? 0;
-        
-        // Earnings by property
-        $sql = "SELECT pr.title as property_title, 
-                       SUM(p.owner_payout_amount) as earnings,
-                       COUNT(p.id) as payment_count
-                FROM rent_payments p
-                JOIN properties pr ON p.property_id = pr.id
-                WHERE p.owner_id = ? AND p.payment_status = 'completed' 
-                AND DATE(p.created_at) BETWEEN ? AND ?
-                GROUP BY pr.id, pr.title
-                ORDER BY earnings DESC";
-        $analytics['by_property'] = $this->db->fetchAll($sql, [$owner_id, $date_from, $date_to]);
-        
-        // Daily earnings breakdown
-        $sql = "SELECT DATE(created_at) as date, 
-                       SUM(owner_payout_amount) as daily_earnings
-                FROM rent_payments 
-                WHERE owner_id = ? AND payment_status = 'completed' 
-                AND DATE(created_at) BETWEEN ? AND ?
-                GROUP BY DATE(created_at)
-                ORDER BY date";
-        $results = $this->db->fetchAll($sql, [$owner_id, $date_from, $date_to]);
-        $analytics['daily_earnings'] = [];
-        foreach ($results as $result) {
-            $analytics['daily_earnings'][$result['date']] = (float)$result['daily_earnings'];
+        $analytics = [
+            'total_earnings' => 0,
+            'total_commission' => 0,
+            'payment_count' => 0,
+            'avg_payment' => 0,
+            'by_property' => [],
+            'daily_earnings' => [],
+        ];
+
+        try {
+            // Total earnings in date range
+            $sql = "SELECT SUM(owner_payout_amount) as total_earnings 
+                    FROM rent_payments 
+                    WHERE owner_id = ? AND payment_status = 'completed' 
+                    AND DATE(created_at) BETWEEN ? AND ?";
+            $result = $this->db->fetch($sql, [$owner_id, $date_from, $date_to]);
+            $analytics['total_earnings'] = (float)($result['total_earnings'] ?? 0);
+
+            // Total commission paid
+            $sql = "SELECT SUM(commission_amount) as total_commission 
+                    FROM rent_payments 
+                    WHERE owner_id = ? AND payment_status = 'completed' 
+                    AND DATE(created_at) BETWEEN ? AND ?";
+            $result = $this->db->fetch($sql, [$owner_id, $date_from, $date_to]);
+            $analytics['total_commission'] = (float)($result['total_commission'] ?? 0);
+
+            // Payment count
+            $sql = "SELECT COUNT(*) as payment_count 
+                    FROM rent_payments 
+                    WHERE owner_id = ? AND payment_status = 'completed' 
+                    AND DATE(created_at) BETWEEN ? AND ?";
+            $result = $this->db->fetch($sql, [$owner_id, $date_from, $date_to]);
+            $analytics['payment_count'] = (int)($result['payment_count'] ?? 0);
+
+            // Average payment amount
+            $sql = "SELECT AVG(owner_payout_amount) as avg_payment 
+                    FROM rent_payments 
+                    WHERE owner_id = ? AND payment_status = 'completed' 
+                    AND DATE(created_at) BETWEEN ? AND ?";
+            $result = $this->db->fetch($sql, [$owner_id, $date_from, $date_to]);
+            $analytics['avg_payment'] = (float)($result['avg_payment'] ?? 0);
+
+            // Earnings by property
+            $sql = "SELECT pr.title as property_title, 
+                           SUM(p.owner_payout_amount) as earnings,
+                           COUNT(p.id) as payment_count
+                    FROM rent_payments p
+                    JOIN properties pr ON p.property_id = pr.id
+                    WHERE p.owner_id = ? AND p.payment_status = 'completed' 
+                    AND DATE(p.created_at) BETWEEN ? AND ?
+                    GROUP BY pr.id, pr.title
+                    ORDER BY earnings DESC";
+            $analytics['by_property'] = $this->db->fetchAll($sql, [$owner_id, $date_from, $date_to]);
+
+            // Daily earnings breakdown
+            $sql = "SELECT DATE(created_at) as date, 
+                           SUM(owner_payout_amount) as daily_earnings
+                    FROM rent_payments 
+                    WHERE owner_id = ? AND payment_status = 'completed' 
+                    AND DATE(created_at) BETWEEN ? AND ?
+                    GROUP BY DATE(created_at)
+                    ORDER BY date";
+            $results = $this->db->fetchAll($sql, [$owner_id, $date_from, $date_to]);
+            foreach ($results as $result) {
+                $analytics['daily_earnings'][$result['date']] = (float)$result['daily_earnings'];
+            }
+        } catch (Exception $e) {
+            // leave defaults
         }
-        
+
         return $analytics;
     }
 }

@@ -6,7 +6,7 @@
 
 class Database {
     private $host = 'localhost';
-    private $db_name = 'renting_place_finder';
+    private $db_name = 'comprehensive_property_system';
     private $username = 'root';
     private $password = '123321555';
     private $charset = 'utf8mb4';
