@@ -140,7 +140,7 @@ $property_types = $database->fetchAll(
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h3 class="mb-0">$<?php echo number_format(array_sum(array_column($recent_payments, 'amount')), 0); ?></h3>
+                                            <h3 class="mb-0">LKR <?php echo number_format(array_sum(array_column($recent_payments, 'amount')), 0); ?></h3>
                                             <p class="mb-0">Total Revenue</p>
                                         </div>
                                         <i class="fas fa-dollar-sign fa-2x"></i>

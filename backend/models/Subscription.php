@@ -57,10 +57,17 @@ class Subscription {
      * Get active subscriptions for a customer
      */
     public function getByCustomer($customer_id) {
-        $sql = "SELECT s.*, p.title as property_title, p.address, p.city, p.state,
-                       (SELECT image_path FROM property_images WHERE property_id = p.id AND is_primary = 1 LIMIT 1) as property_image
+        $sql = "SELECT 
+                    s.*, 
+                    p.title AS property_title,
+                    '' AS address,
+                    c.name AS city,
+                    d.name AS district,
+                    (SELECT image_url FROM property_images WHERE property_id = p.id AND is_primary = 1 LIMIT 1) AS property_image
                 FROM subscriptions s
                 JOIN properties p ON s.property_id = p.id
+                LEFT JOIN cities c ON p.city_id = c.id
+                LEFT JOIN districts d ON p.district_id = d.id
                 WHERE s.customer_id = ? AND s.status = 'active'
                 ORDER BY s.created_at DESC";
         return $this->db->fetchAll($sql, [$customer_id]);

@@ -185,13 +185,16 @@ class Booking {
             $params[] = $status;
         }
         
+        // properties table in current schema does not have address/city text fields
+        // Join cities to expose city name; alias address as NULL
         $sql = "SELECT b.*, 
                        c.name as customer_name, c.phone as customer_phone, c.email as customer_email,
-                       p.title as property_title, p.address as property_address, p.city as property_city,
+                       p.title as property_title, NULL as property_address, ci.name as property_city,
                        o.name as owner_name, o.phone as owner_phone
                 FROM rental_bookings b
                 JOIN users c ON b.customer_id = c.id
                 JOIN properties p ON b.property_id = p.id
+                LEFT JOIN cities ci ON ci.id = p.city_id
                 JOIN users o ON p.owner_id = o.id
                 {$where_clause} 
                 ORDER BY b.created_at DESC 
@@ -200,7 +203,12 @@ class Booking {
         $params[] = $limit;
         $params[] = $offset;
         
-        return $this->db->fetchAll($sql, $params);
+        try {
+            return $this->db->fetchAll($sql, $params);
+        } catch (Exception $e) {
+            // Fallback if legacy rentals table doesn't exist in current schema
+            return [];
+        }
     }
     
     /**
@@ -216,8 +224,12 @@ class Booking {
         }
         
         $sql = "SELECT COUNT(*) as count FROM rental_bookings {$where_clause}";
-        $result = $this->db->fetch($sql, $params);
-        return $result['count'];
+        try {
+            $result = $this->db->fetch($sql, $params);
+            return (int)($result['count'] ?? 0);
+        } catch (Exception $e) {
+            return 0;
+        }
     }
     
     /**

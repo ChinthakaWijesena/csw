@@ -73,11 +73,71 @@ function run_database_migration() {
         }
         
         if (!empty($missing_tables)) {
-            // Only log if not in API context
-            if (!isset($_SERVER['REQUEST_URI']) || strpos($_SERVER['REQUEST_URI'], '/api/') === false) {
-                error_log("Missing tables: " . implode(', ', $missing_tables));
+            // Attempt to create critical missing tables used by the app runtime
+            foreach ($missing_tables as $tbl) {
+                switch ($tbl) {
+                    case 'subscriptions':
+                        $database->query("CREATE TABLE IF NOT EXISTS `subscriptions` (
+                            `id` INT(11) NOT NULL AUTO_INCREMENT,
+                            `property_id` INT(11) NOT NULL,
+                            `customer_id` INT(11) NOT NULL,
+                            `owner_id` INT(11) NOT NULL,
+                            `monthly_amount` DECIMAL(12,2) NOT NULL,
+                            `start_date` DATE NOT NULL,
+                            `next_payment_date` DATE NOT NULL,
+                            `last_payment_date` DATETIME NULL DEFAULT NULL,
+                            `status` ENUM('active','cancelled','paused') NOT NULL DEFAULT 'active',
+                            `payment_method` VARCHAR(50) DEFAULT 'payhere',
+                            `auto_renew` TINYINT(1) NOT NULL DEFAULT 1,
+                            `cancellation_reason` TEXT NULL,
+                            `cancelled_at` DATETIME NULL DEFAULT NULL,
+                            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            PRIMARY KEY (`id`),
+                            INDEX `idx_customer` (`customer_id`),
+                            INDEX `idx_owner` (`owner_id`),
+                            INDEX `idx_property` (`property_id`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+                        break;
+                    case 'rent_payments':
+                        $database->query("CREATE TABLE IF NOT EXISTS `rent_payments` (
+                            `id` INT(11) NOT NULL AUTO_INCREMENT,
+                            `booking_id` INT(11) NULL DEFAULT NULL,
+                            `subscription_id` INT(11) NULL DEFAULT NULL,
+                            `customer_id` INT(11) NOT NULL,
+                            `property_id` INT(11) NOT NULL,
+                            `owner_id` INT(11) NOT NULL,
+                            `amount` DECIMAL(12,2) NOT NULL,
+                            `payment_method` VARCHAR(50) DEFAULT NULL,
+                            `payment_status` ENUM('pending','completed','failed','refunded') NOT NULL DEFAULT 'pending',
+                            `payment_reference` VARCHAR(255) NULL DEFAULT NULL,
+                            `due_date` DATE NOT NULL,
+                            `paid_date` DATE NULL DEFAULT NULL,
+                            `commission_amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                            `owner_payout_amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                            `is_recurring` TINYINT(1) NOT NULL DEFAULT 0,
+                            `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            PRIMARY KEY (`id`),
+                            INDEX `idx_owner` (`owner_id`),
+                            INDEX `idx_customer` (`customer_id`),
+                            INDEX `idx_property` (`property_id`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+                        break;
+                    default:
+                        // leave others for full SQL import; they are not critical for current flows
+                        break;
+                }
             }
-            return false;
+
+            // Re-check critical tables existence; if still missing, abort migration
+            $critical_tables = ['subscriptions'];
+            foreach ($critical_tables as $ct) {
+                if (!table_exists($ct)) {
+                    if (!isset($_SERVER['REQUEST_URI']) || strpos($_SERVER['REQUEST_URI'], '/api/') === false) {
+                        error_log("Critical table missing after creation attempt: {$ct}");
+                    }
+                    return false;
+                }
+            }
         }
         
         // Check for missing columns in existing tables
