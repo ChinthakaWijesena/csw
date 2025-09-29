@@ -18,7 +18,7 @@ require_once __DIR__ . '/../backend/helpers/error_handler.php';
 // Define application constants
 define('APP_NAME', 'Renting Place Finder');
 define('APP_VERSION', '1.0.0');
-define('APP_URL', 'http://localhost/chinthaka');
+define('APP_URL', 'http://localhost/csw');
 define('APP_PATH', __DIR__ . '/..');
 
 // Security settings

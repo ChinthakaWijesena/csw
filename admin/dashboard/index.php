@@ -65,40 +65,12 @@ $property_types = $database->fetchAll(
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Custom CSS -->
-    <style>
-        .admin-sidebar {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .admin-sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            border-radius: 0.5rem;
-            margin: 0.25rem 0;
-        }
-        .admin-sidebar .nav-link:hover,
-        .admin-sidebar .nav-link.active {
-            color: white;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        .stat-card i {
-            font-size: 2.5rem;
-            opacity: 0.8;
-        }
-    </style>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
             <!-- Admin Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0 admin-sidebar">
+            <div class="col-md-3 col-lg-2 px-0 bg-dark">
                 <div class="p-3">
                     <h4 class="text-white mb-4">
                         <i class="fas fa-cog me-2"></i>Admin Panel
@@ -106,47 +78,47 @@ $property_types = $database->fetchAll(
                     
                     <ul class="nav nav-pills flex-column">
                         <li class="nav-item">
-                            <a class="nav-link active" href="index.php">
+                            <a class="nav-link active text-white" href="index.php">
                                 <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="users.php">
+                            <a class="nav-link text-white-50" href="users.php">
                                 <i class="fas fa-users me-2"></i>Users
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="properties.php">
+                            <a class="nav-link text-white-50" href="properties.php">
                                 <i class="fas fa-home me-2"></i>Properties
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="bookings.php">
+                            <a class="nav-link text-white-50" href="bookings.php">
                                 <i class="fas fa-calendar me-2"></i>Bookings
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="payments.php">
+                            <a class="nav-link text-white-50" href="payments.php">
                                 <i class="fas fa-credit-card me-2"></i>Payments
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="reports.php">
+                            <a class="nav-link text-white-50" href="reports.php">
                                 <i class="fas fa-chart-bar me-2"></i>Reports
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="settings.php">
+                            <a class="nav-link text-white-50" href="settings.php">
                                 <i class="fas fa-cog me-2"></i>Settings
                             </a>
                         </li>
                         <li class="nav-item mt-3">
-                            <a class="nav-link" href="../../frontend/index.php">
+                            <a class="nav-link text-white-50" href="../../frontend/index.php">
                                 <i class="fas fa-external-link-alt me-2"></i>View Site
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="../../frontend/logout.php">
+                            <a class="nav-link text-white-50" href="../../frontend/logout.php">
                                 <i class="fas fa-sign-out-alt me-2"></i>Logout
                             </a>
                         </li>
@@ -168,46 +140,54 @@ $property_types = $database->fetchAll(
                     <!-- Statistics Cards -->
                     <div class="row mb-4">
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="stat-card">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h3 class="mb-0"><?php echo number_format($user_stats['customer'] + $user_stats['owner']); ?></h3>
-                                        <p class="mb-0">Total Users</p>
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="mb-0"><?php echo number_format($user_stats['customers'] + $user_stats['owners']); ?></h3>
+                                            <p class="mb-0">Total Users</p>
+                                        </div>
+                                        <i class="fas fa-users fa-2x"></i>
                                     </div>
-                                    <i class="fas fa-users"></i>
                                 </div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="stat-card">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h3 class="mb-0"><?php echo number_format($property_stats['total']); ?></h3>
-                                        <p class="mb-0">Total Properties</p>
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="mb-0"><?php echo number_format($property_stats['total']); ?></h3>
+                                            <p class="mb-0">Total Properties</p>
+                                        </div>
+                                        <i class="fas fa-home fa-2x"></i>
                                     </div>
-                                    <i class="fas fa-home"></i>
                                 </div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="stat-card">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h3 class="mb-0"><?php echo number_format($property_stats['verified']); ?></h3>
-                                        <p class="mb-0">Verified Properties</p>
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="mb-0"><?php echo number_format($property_stats['verified']); ?></h3>
+                                            <p class="mb-0">Verified Properties</p>
+                                        </div>
+                                        <i class="fas fa-check-circle fa-2x"></i>
                                     </div>
-                                    <i class="fas fa-check-circle"></i>
                                 </div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="stat-card">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h3 class="mb-0">$<?php echo number_format(array_sum(array_column($recent_payments, 'amount')), 0); ?></h3>
-                                        <p class="mb-0">Total Revenue</p>
+                            <div class="card bg-warning text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h3 class="mb-0">$<?php echo number_format(array_sum(array_column($recent_payments, 'amount')), 0); ?></h3>
+                                            <p class="mb-0">Total Revenue</p>
+                                        </div>
+                                        <i class="fas fa-dollar-sign fa-2x"></i>
                                     </div>
-                                    <i class="fas fa-dollar-sign"></i>
                                 </div>
                             </div>
                         </div>
